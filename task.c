@@ -2439,10 +2439,10 @@ retry_radix_tree:
 			goto retry_radix_tree;
 		}
 
-		upid_ns = ULONG(pidbuf + OFFSET(pid_numbers) + OFFSET(upid_ns));
+		upid_ns = EULONG(&(ULONG(pidbuf + OFFSET(pid_numbers) + OFFSET(upid_ns))));
 		if (upid_ns != tt->init_pid_ns)
 			continue;
-		pid_tasks_0 = ULONG(pidbuf + OFFSET(pid_tasks));
+		pid_tasks_0 = EULONG(&(ULONG(pidbuf + OFFSET(pid_tasks))));
 		if (!pid_tasks_0)
 			continue;
 		if (VALID_MEMBER(task_struct_pids))
