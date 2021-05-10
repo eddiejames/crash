@@ -42,7 +42,7 @@ GDB_PATCH_FILES=
 #
 # Default installation directory
 #
-INSTALLDIR=${DESTDIR}/usr/bin
+INSTALLDIR=${DESTDIR}
 
 # LDFLAGS will be configured automatically by configure
 LDFLAGS=
