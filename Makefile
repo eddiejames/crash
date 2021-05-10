@@ -259,7 +259,7 @@ gdb_unzip:
 	  echo /usr/bin/wget is required to download ${GDB}.tar.gz; echo; exit 1; fi
 	@if [ ! -f ${GDB}.tar.gz ] && [ -f /usr/bin/wget ]; then \
 	  [ ! -t 2 ] && WGET_OPTS="--progress=dot:mega"; \
-	  wget $$WGET_OPTS http://ftp.gnu.org/gnu/gdb/${GDB}.tar.gz; fi
+	  wget ftp.gnu.org/gnu/gdb/${GDB}.tar.gz; fi
 	@tar --exclude-from gdb.files -xzmf ${GDB}.tar.gz
 	@make --no-print-directory gdb_patch
 
