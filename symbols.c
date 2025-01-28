@@ -1773,7 +1773,7 @@ store_module_symbols_v1(ulong total, int mods_installed)
 		if (!lm->mod_etext_guess)
 			find_mod_etext(lm);
 
-		NEXT_MODULE(mod_next, modbuf);
+		mod_next=next_module(mod_next,modbuf);
         }
 
 	FREEBUF(modbuf);
@@ -1869,45 +1869,49 @@ kernel_symbol_type_init(void)
 static ulong
 modsym_name(ulong syms, union kernel_symbol *modsym, int i)
 {
+	ulong swap = 0;
+
 	switch (st->kernel_symbol_type)
 	{
 	case 1:
-		return (ulong)modsym->v1.name;
+		swap = (ulong)modsym->v1.name;
 	case 2:
-		return (syms + i * sizeof(struct kernel_symbol_v2) +
+		swap = (syms + i * sizeof(struct kernel_symbol_v2) +
 			offsetof(struct kernel_symbol_v2, name_offset) +
 			modsym->v2.name_offset);
 	case 3:
-		return (syms + i * sizeof(struct kernel_symbol_v3) +
+		swap = (syms + i * sizeof(struct kernel_symbol_v3) +
 			offsetof(struct kernel_symbol_v3, name_offset) +
 			modsym->v3.name_offset);
 	case 4:
-		return (ulong)modsym->v4.name;
+		swap = (ulong)modsym->v4.name;
 	}
 
-	return 0;
+	return EULONG(&swap);
 }
 
 static ulong
 modsym_value(ulong syms, union kernel_symbol *modsym, int i)
 {
+	ulong swap = 0;
+
 	switch (st->kernel_symbol_type)
 	{
 	case 1:
-		return (ulong)modsym->v1.value;
+		swap = (ulong)modsym->v1.value;
 	case 2:
-		return (syms + i * sizeof(struct kernel_symbol_v2) +
+		swap = (syms + i * sizeof(struct kernel_symbol_v2) +
 			offsetof(struct kernel_symbol_v2, value_offset) +
 			modsym->v2.value_offset);
 	case 3:
-		return (syms + i * sizeof(struct kernel_symbol_v3) +
+		swap = (syms + i * sizeof(struct kernel_symbol_v3) +
 			offsetof(struct kernel_symbol_v3, value_offset) +
 			modsym->v3.value_offset);
 	case 4:
-		return (ulong)modsym->v4.value;
+		swap = (ulong)modsym->v4.value;
 	}
 
-	return 0;
+	return EULONG(&swap);
 }
 
 /*
@@ -2208,7 +2212,7 @@ store_module_symbols_6_4(ulong total, int mods_installed)
 
 		lm->mod_ext_symcnt = mcnt - lm->mod_ext_symcnt;
 
-		NEXT_MODULE(mod_next, modbuf);
+		mod_next=next_module(mod_next,modbuf);
 	}
 
 	FREEBUF(modbuf);
@@ -2272,6 +2276,7 @@ store_module_symbols_v2(ulong total, int mods_installed)
         int i, m;
         ulong mod, mod_next; 
 	char *mod_name;
+	unsigned long ptmp;
         uint nsyms, ngplsyms;
         ulong syms, gpl_syms;
 	ulong nksyms;
@@ -2329,24 +2334,31 @@ store_module_symbols_v2(ulong total, int mods_installed)
 		readmem(mod, KVADDR, modbuf, SIZE(module), 
 			"module buffer", FAULT_ON_ERROR);
 
-		syms = ULONG(modbuf + OFFSET(module_syms));
-		gpl_syms = ULONG(modbuf + OFFSET(module_gpl_syms));
-                nsyms = UINT(modbuf + OFFSET(module_num_syms));
-                ngplsyms = UINT(modbuf + OFFSET(module_num_gpl_syms));
+		syms = EULONG(&(ULONG(modbuf + OFFSET(module_syms))));
+		
+		gpl_syms = EULONG(&(ULONG(modbuf + OFFSET(module_gpl_syms))));
+		nsyms = EUINT(&(UINT(modbuf + OFFSET(module_num_syms))));
+		ngplsyms = EUINT(&(UINT(modbuf + OFFSET(module_num_gpl_syms))));
+		if (CRASHDEBUG(8))
+			fprintf(fp,"swapping syms %08lx gpl_syms %08lx  in store module symbol v2 \n",syms, gpl_syms);
 
 		if (THIS_KERNEL_VERSION >= LINUX(2,6,27)) {
-			nksyms = UINT(modbuf + OFFSET(module_num_symtab));
-			size = UINT(modbuf + MODULE_OFFSET2(module_core_size, rx));
+			nksyms = EUINT(&(UINT(modbuf + OFFSET(module_num_symtab))));
+			size = EUINT(&(UINT(modbuf + MODULE_OFFSET2(module_core_size, rx))));
 		} else {
-			nksyms = ULONG(modbuf + OFFSET(module_num_symtab));
-			size = ULONG(modbuf + MODULE_OFFSET2(module_core_size, rx));
+			nksyms = EULONG(&(ULONG(modbuf + OFFSET(module_num_symtab))));
+			size = EULONG(&(ULONG(modbuf + MODULE_OFFSET2(module_core_size, rx))));
 		}
+		
+		if (CRASHDEBUG(8))
+			fprintf(fp,"swapping nksyms %08lx size %08lx  in store module symbol v2 \n",syms, gpl_syms);
 
 		mod_name = modbuf + OFFSET(module_name);
 
 		lm = &st->load_modules[m++];
 		BZERO(lm, sizeof(struct load_module));
 		lm->mod_base = ULONG(modbuf + MODULE_OFFSET2(module_module_core, rx));
+		lm->mod_base = EULONG(&(lm->mod_base));
 		lm->module_struct = mod;
 		lm->mod_size = size;
         	if (strlen(mod_name) < MAX_MOD_NAME)
@@ -2364,24 +2376,24 @@ store_module_symbols_v2(ulong total, int mods_installed)
 				ngplsyms, nksyms);
 		lm->mod_flags = MOD_EXT_SYMS;
 		lm->mod_ext_symcnt = mcnt;
-		lm->mod_init_module_ptr = ULONG(modbuf + 
-			MODULE_OFFSET2(module_module_init, rx));
+		lm->mod_init_module_ptr = EULONG(&(ULONG(modbuf + 
+			MODULE_OFFSET2(module_module_init, rx))));
 		if (VALID_MEMBER(module_percpu))
-			lm->mod_percpu = ULONG(modbuf + OFFSET(module_percpu));
+			lm->mod_percpu = EULONG(&(ULONG(modbuf + OFFSET(module_percpu))));
 		if (THIS_KERNEL_VERSION >= LINUX(2,6,27)) {
 			lm->mod_etext_guess = lm->mod_base +
-				UINT(modbuf + MODULE_OFFSET(module_core_text_size, module_core_size_rx));
+				EULONG(&(UINT(modbuf + MODULE_OFFSET(module_core_text_size, module_core_size_rx))));
 			lm->mod_init_size =
-				UINT(modbuf + MODULE_OFFSET2(module_init_size, rx));
+				EULONG(&(UINT(modbuf + MODULE_OFFSET2(module_init_size, rx))));
 			lm->mod_init_text_size = 
-				UINT(modbuf + MODULE_OFFSET(module_init_text_size, module_init_size_rx));
+				EULONG(&(UINT(modbuf + MODULE_OFFSET(module_init_text_size, module_init_size_rx))));
 		} else {
 			lm->mod_etext_guess = lm->mod_base +
-				ULONG(modbuf + MODULE_OFFSET(module_core_text_size, module_core_size_rx));
+				EULONG(&(ULONG(modbuf + MODULE_OFFSET(module_core_text_size, module_core_size_rx))));
 			lm->mod_init_size =
-				ULONG(modbuf + MODULE_OFFSET2(module_init_size, rx));
+				EULONG(&(ULONG(modbuf + MODULE_OFFSET2(module_init_size, rx))));
 			lm->mod_init_text_size = 
-				ULONG(modbuf + MODULE_OFFSET(module_init_text_size, module_init_size_rx));
+				EULONG(&(ULONG(modbuf + MODULE_OFFSET(module_init_text_size, module_init_size_rx))));
 		}
 		lm->mod_text_start = lm->mod_base;
 
@@ -2424,8 +2436,10 @@ store_module_symbols_v2(ulong total, int mods_installed)
 		} 
 
 		for (i = first = last = 0; i < nsyms; i++) {
+
 			modsym = (union kernel_symbol *)
 			    (modsymbuf + (i * kernel_symbol_size));
+			
 			if (!first
 			    || first > modsym_name(syms, modsym, i))
 				first = modsym_name(syms, modsym, i);
@@ -2602,7 +2616,7 @@ store_module_symbols_v2(ulong total, int mods_installed)
 		if (!lm->mod_etext_guess)
 			find_mod_etext(lm);
 
-		NEXT_MODULE(mod_next, modbuf);
+		mod_next=next_module(mod_next, modbuf);
         }
 
 	FREEBUF(modbuf);
@@ -2830,6 +2844,14 @@ Elf32_Sym_to_common(Elf32_Sym *e32, struct elf_common *ec)
 	else
 		ec->st_info = '?';
 	ec->st_size = (ulong)e32->st_size;
+	
+	if (NEED_SWAP() ) {
+		ec->st_value = EULONG(&(ec->st_value));
+		ec->st_name = EULONG(&(ec->st_name));
+		ec->st_shndx = EULONG(&(ec->st_shndx));
+		ec->st_size = EULONG(&(ec->st_size));
+	}
+	
 }
 
 static void 
@@ -2906,11 +2928,11 @@ store_module_kallsyms_v2(struct load_module *lm, int start, int curr,
 	}
 
 	if (THIS_KERNEL_VERSION >= LINUX(2,6,27))
-		nksyms = UINT(modbuf + OFFSET(module_num_symtab));
+		nksyms = EINT(&(UINT(modbuf + OFFSET(module_num_symtab))));
 	else
-		nksyms = ULONG(modbuf + OFFSET(module_num_symtab));
+		nksyms = EULONG(&(ULONG(modbuf + OFFSET(module_num_symtab))));
 
-	ksymtab = ULONG(modbuf + OFFSET(module_symtab));
+	ksymtab = EULONG(&(ULONG(modbuf + OFFSET(module_symtab))));
 	if (!IN_MODULE(ksymtab, lm) && !IN_MODULE_INIT(ksymtab, lm)) {
 		error(WARNING,
 		    "%s: module.symtab outside of module address space\n",
@@ -2925,7 +2947,7 @@ store_module_kallsyms_v2(struct load_module *lm, int start, int curr,
 	else
 		locsymtab = module_buf_init + (ksymtab - base_init);
 
-	kstrtab = ULONG(modbuf + OFFSET(module_strtab));
+	kstrtab = EULONG(&(ULONG(modbuf + OFFSET(module_strtab))));
 	if (!IN_MODULE(kstrtab, lm) && !IN_MODULE_INIT(kstrtab, lm)) {
 		error(WARNING, 
 		    "%s: module.strtab outside of module address space\n",
@@ -4190,9 +4212,21 @@ is_kernel(char *file)
 	     (__BYTE_ORDER == __BIG_ENDIAN)) ||
 	    ((eheader[EI_DATA] == ELFDATA2MSB) && 
 	     (__BYTE_ORDER == __LITTLE_ENDIAN)));
+    
+        if( swap )							/* Nathan */
+            pc->flags2 |= ENDIAN_DIFF;		/* Nathan */
+        
+        char class;
+        short type;
+        int version;
+        
+        class = elf32->e_ident[EI_CLASS];
+        type = swap16(elf32->e_type, swap);
+        version = swap32(elf32->e_version,swap);
 
         if ((elf32->e_ident[EI_CLASS] == ELFCLASS32) &&
-	    (swap16(elf32->e_type, swap) == ET_EXEC) &&
+	    ((swap16(elf32->e_type, swap) == ET_EXEC) || 
+	     (swap16(elf32->e_type, swap) == ET_DYN)) &&
 	    (swap32(elf32->e_version, swap) == EV_CURRENT)) {
 		switch (swap16(elf32->e_machine, swap))
 		{
@@ -4487,7 +4521,7 @@ is_shared_object(char *file)
 		{
 		case EM_386:
 			if (machine_type("X86") || machine_type("ARM") ||
-			    machine_type("MIPS"))
+			    machine_type("MIPS") || machine_type("PPC"))
 				return TRUE;
 			break;
 
@@ -6390,6 +6424,8 @@ get_symbol_data(char *symbol, long size, void *local)
                         size, symbol, FAULT_ON_ERROR);
         else 
                 error(FATAL, "cannot resolve: \"%s\"\n", symbol);
+		if (CRASHDEBUG(8))
+			fprintf(fp,"get_symbol data %s return %08lx\n",symbol,*((unsigned long *)local));	/* Karlo */
 }
 
 /*
@@ -6403,8 +6439,10 @@ try_get_symbol_data(char *symbol, long size, void *local)
         if ((sp = symbol_search(symbol)) &&
             readmem(sp->value, KVADDR, local,
             size, symbol, RETURN_ON_ERROR|QUIET))
+		{
 			return TRUE;
-
+		}
+			
 	return FALSE;
 }
 
@@ -14492,7 +14530,7 @@ long
 OFFSET_verify(long offset, char *func, char *file, int line, char *item)
 {
 	char errmsg[BUFSIZE];
-
+	
 	if (!(pc->flags & DATADEBUG))
 		return offset;
 

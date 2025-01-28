@@ -1840,11 +1840,13 @@ inode_type(char *inode_buf, char *pathname)
         {
         case SIZEOF_32BIT:
                 umode32 = UINT(inode_buf + OFFSET(inode_i_mode));
+                umode32 = EUINT(&umode32);
 		mode = umode32;
                 break;
 
         case SIZEOF_16BIT:
                 umode16 = USHORT(inode_buf + OFFSET(inode_i_mode));
+                umode16 = EUSHORT(&umode16);
 		mode = (uint)umode16;
                 break;
         }
@@ -2492,7 +2494,7 @@ open_files_dump(ulong task, int flags, struct reference *ref)
 	if (ref) 
 		ref->cmdflags = 0;
 
-	fs_struct_addr = ULONG(tt->task_struct + OFFSET(task_struct_fs));
+	fs_struct_addr = EULONG(&(ULONG(tt->task_struct + OFFSET(task_struct_fs))));
 
         if (fs_struct_addr) {
 		fs_struct_buf = GETBUF(SIZE(fs_struct));
@@ -2501,21 +2503,21 @@ open_files_dump(ulong task, int flags, struct reference *ref)
 
 		use_path = (MEMBER_TYPE("fs_struct", "root") == TYPE_CODE_STRUCT);
 		if (use_path)
-			root_dentry = ULONG(fs_struct_buf + OFFSET(fs_struct_root) +
-				OFFSET(path_dentry));
+			root_dentry = EULONG(&(ULONG(fs_struct_buf + OFFSET(fs_struct_root) +
+				OFFSET(path_dentry))));
 		else
-			root_dentry = ULONG(fs_struct_buf + OFFSET(fs_struct_root));
+			root_dentry = EULONG(&(ULONG(fs_struct_buf + OFFSET(fs_struct_root))));
 
 		if (root_dentry) {
 			if (VALID_MEMBER(fs_struct_rootmnt)) {
-                		vfsmnt = ULONG(fs_struct_buf +
-                        		OFFSET(fs_struct_rootmnt));
+                		vfsmnt = EULONG(&(ULONG(fs_struct_buf +
+                        		OFFSET(fs_struct_rootmnt))));
 				get_pathname(root_dentry, root_pathname, 
 					BUFSIZE, 1, vfsmnt);
 			} else if (use_path) {
-				vfsmnt = ULONG(fs_struct_buf +
+				vfsmnt = EULONG(&(ULONG(fs_struct_buf +
 					OFFSET(fs_struct_root) +
-					OFFSET(path_mnt));
+					OFFSET(path_mnt))));
 				get_pathname(root_dentry, root_pathname, 
 					BUFSIZE, 1, vfsmnt);
 			} else {
@@ -2525,21 +2527,21 @@ open_files_dump(ulong task, int flags, struct reference *ref)
 		}
 
 		if (use_path)
-			pwd_dentry = ULONG(fs_struct_buf + OFFSET(fs_struct_pwd) +
-				OFFSET(path_dentry));
+			pwd_dentry = EULONG(&(ULONG(fs_struct_buf + OFFSET(fs_struct_pwd) +
+				OFFSET(path_dentry))));
 		else
-			pwd_dentry = ULONG(fs_struct_buf + OFFSET(fs_struct_pwd));
+			pwd_dentry = EULONG(&(ULONG(fs_struct_buf + OFFSET(fs_struct_pwd))));
 
 		if (pwd_dentry) {
 			if (VALID_MEMBER(fs_struct_pwdmnt)) {
-                		vfsmnt = ULONG(fs_struct_buf +
-                        		OFFSET(fs_struct_pwdmnt));
+                		vfsmnt = EULONG(&(ULONG(fs_struct_buf +
+                        		OFFSET(fs_struct_pwdmnt))));
 				get_pathname(pwd_dentry, pwd_pathname, 
 					BUFSIZE, 1, vfsmnt);
 			} else if (use_path) {
-				vfsmnt = ULONG(fs_struct_buf +
+				vfsmnt = EULONG(&(ULONG(fs_struct_buf +
 					OFFSET(fs_struct_pwd) +
-					OFFSET(path_mnt));
+					OFFSET(path_mnt))));
 				get_pathname(pwd_dentry, pwd_pathname, 
 					BUFSIZE, 1, vfsmnt);
 
@@ -2575,7 +2577,7 @@ open_files_dump(ulong task, int flags, struct reference *ref)
 		FREEBUF(fs_struct_buf);
 	}
 
-	files_struct_addr = ULONG(tt->task_struct + OFFSET(task_struct_files));
+	files_struct_addr = EULONG(&(ULONG(tt->task_struct + OFFSET(task_struct_files))));
 
 	if (files_struct_addr) {
 		readmem(files_struct_addr, KVADDR, files_struct_buf,
@@ -2583,27 +2585,27 @@ open_files_dump(ulong task, int flags, struct reference *ref)
 			FAULT_ON_ERROR);
 	
 		if (VALID_MEMBER(files_struct_max_fdset)) {
-			max_fdset = INT(files_struct_buf +
-			OFFSET(files_struct_max_fdset));
+			max_fdset = EINT(&(INT(files_struct_buf +
+			OFFSET(files_struct_max_fdset))));
 
-			max_fds = INT(files_struct_buf +
-			OFFSET(files_struct_max_fds));
+			max_fds = EINT(&(INT(files_struct_buf +
+			OFFSET(files_struct_max_fds))));
 		}
 	}
 
 	if (VALID_MEMBER(files_struct_fdt)) {
-		fdtable_addr = ULONG(files_struct_buf + OFFSET(files_struct_fdt));
+		fdtable_addr = EULONG(&(ULONG(files_struct_buf + OFFSET(files_struct_fdt))));
 
 		if (fdtable_addr) {
 			readmem(fdtable_addr, KVADDR, fdtable_buf,
 	 			SIZE(fdtable), "fdtable buffer", FAULT_ON_ERROR); 
 			if (VALID_MEMBER(fdtable_max_fdset))
-				max_fdset = INT(fdtable_buf +
-					OFFSET(fdtable_max_fdset));
+				max_fdset = EINT(&(INT(fdtable_buf +
+					OFFSET(fdtable_max_fdset))));
 			else
 				max_fdset = -1;
-			max_fds = INT(fdtable_buf +
-        	                OFFSET(fdtable_max_fds));
+			max_fds = EINT(&(INT(fdtable_buf +
+        	                OFFSET(fdtable_max_fds))));
 		}
 	}
 
@@ -2638,11 +2640,11 @@ open_files_dump(ulong task, int flags, struct reference *ref)
         }
 
 	if (VALID_MEMBER(fdtable_open_fds))
-		open_fds_addr = ULONG(fdtable_buf +
-			OFFSET(fdtable_open_fds));
+		open_fds_addr = EULONG(&(ULONG(fdtable_buf +
+			OFFSET(fdtable_open_fds))));
 	else
-		open_fds_addr = ULONG(files_struct_buf +
-			OFFSET(files_struct_open_fds));
+		open_fds_addr = EULONG(&(ULONG(files_struct_buf +
+			OFFSET(files_struct_open_fds))));
 
 	open_fds_size = MAX(max_fdset, max_fds) / BITS_PER_BYTE;	
 	open_fds = (ulong *)GETBUF(open_fds_size);
@@ -2667,9 +2669,9 @@ open_files_dump(ulong task, int flags, struct reference *ref)
 	} 
 
 	if (VALID_MEMBER(fdtable_fd))
-		fd = ULONG(fdtable_buf + OFFSET(fdtable_fd));
+		fd = EULONG(&(ULONG(fdtable_buf + OFFSET(fdtable_fd))));
 	else
-		fd = ULONG(files_struct_buf + OFFSET(files_struct_fd));
+		fd = EULONG(&(ULONG(files_struct_buf + OFFSET(files_struct_fd))));
 
 	if (!open_fds_addr || !fd) {
                 if (ref && (ref->cmdflags & FILES_REF_FOUND))
@@ -2922,7 +2924,7 @@ file_dump(ulong file, ulong dentry, ulong inode, int fd, int flags)
 
 	if (!dentry && file) {
 		file_buf = fill_file_cache(file);		
-		dentry = ULONG(file_buf + OFFSET(file_f_dentry));
+		dentry = EULONG(&(ULONG(file_buf + OFFSET(file_f_dentry))));
 	}
 
 	if (!dentry) {
@@ -2952,7 +2954,7 @@ file_dump(ulong file, ulong dentry, ulong inode, int fd, int flags)
 
 	if (!inode) {
 		dentry_buf = fill_dentry_cache(dentry);
-		inode = ULONG(dentry_buf + OFFSET(dentry_d_inode));
+		inode = EULONG(&(ULONG(dentry_buf + OFFSET(dentry_d_inode))));
 	}
 
 	if (!inode) { 
@@ -3027,7 +3029,7 @@ file_dump(ulong file, ulong dentry, ulong inode, int fd, int flags)
 				space(MINSPACE),
 				pathname+1);
 		} else if (flags & DUMP_FILE_NRPAGES) {
-			i_mapping = ULONG(inode_buf + OFFSET(inode_i_mapping));
+			i_mapping = EULONG(&(ULONG(inode_buf + OFFSET(inode_i_mapping))));
 			nrpages = get_inode_nrpages(i_mapping);
 
 			fprintf(fp, "%3d%s%s%s%s%s%s%s%s%s%s\n",
@@ -3141,14 +3143,14 @@ get_pathname(ulong dentry, char *pathname, int length, int full, ulong vfsmnt)
 
 		dentry_buf = fill_dentry_cache(tmp_dentry);
 
-		d_name_len = INT(dentry_buf +
-			OFFSET(dentry_d_name) + OFFSET(qstr_len));
+		d_name_len = EINT(&(INT(dentry_buf +
+			OFFSET(dentry_d_name) + OFFSET(qstr_len))));
 
 		if (!d_name_len) 
 			break;
 
-		d_name_name = ULONG(dentry_buf + OFFSET(dentry_d_name) 
-			+ OFFSET(qstr_name));
+		d_name_name = EULONG(&(ULONG(dentry_buf + OFFSET(dentry_d_name) 
+			+ OFFSET(qstr_name))));
 
 		if (!d_name_name)
 			break;
@@ -3173,7 +3175,7 @@ get_pathname(ulong dentry, char *pathname, int length, int full, ulong vfsmnt)
 			strncpy(pathname, buf, BUFSIZE);
 		}
 
-		parent = ULONG(dentry_buf + OFFSET(dentry_d_parent)); 
+		parent = EULONG(&(ULONG(dentry_buf + OFFSET(dentry_d_parent)))); 
 			
 		if (tmp_dentry == parent && full) {
 			if (VALID_MEMBER(vfsmount_mnt_mountpoint)) {
@@ -3184,10 +3186,10 @@ get_pathname(ulong dentry, char *pathname, int length, int full, ulong vfsmnt)
 						SIZE(vfsmount), 
 						"vfsmount buffer", 
 						FAULT_ON_ERROR);
-        				parent = ULONG(vfsmnt_buf + 
-					    OFFSET(vfsmount_mnt_mountpoint));
-        				mnt_parent = ULONG(vfsmnt_buf + 
-					    OFFSET(vfsmount_mnt_parent));
+        				parent = EULONG(&(ULONG(vfsmnt_buf + 
+					    OFFSET(vfsmount_mnt_mountpoint))));
+        				mnt_parent = EULONG(&(ULONG(vfsmnt_buf + 
+					    OFFSET(vfsmount_mnt_parent))));
 					if (tmp_vfsmnt == mnt_parent)
 						break;
 					else
@@ -3202,10 +3204,10 @@ get_pathname(ulong dentry, char *pathname, int length, int full, ulong vfsmnt)
 						SIZE(mount), 
 						"mount buffer", 
 						FAULT_ON_ERROR);
-        				parent = ULONG(mnt_buf + 
-					    OFFSET(mount_mnt_mountpoint));
-        				mnt_parent = ULONG(mnt_buf + 
-					    OFFSET(mount_mnt_parent));
+        				parent = EULONG(&(ULONG(mnt_buf + 
+					    OFFSET(mount_mnt_mountpoint))));
+        				mnt_parent = EULONG(&(ULONG(mnt_buf + 
+					    OFFSET(mount_mnt_parent))));
 					if ((tmp_vfsmnt - OFFSET(mount_mnt)) == mnt_parent)
 						break;
 					else
@@ -3312,6 +3314,7 @@ fill_dentry_cache(ulong dentry)
 {
 	int i;
 	char *cache;
+	unsigned long * tmp;
 
 	ft->dentry_cache_fills++;
 
@@ -3327,7 +3330,10 @@ fill_dentry_cache(ulong dentry)
 
         readmem(dentry, KVADDR, cache, SIZE(dentry),
         	"fill_dentry_cache", FAULT_ON_ERROR);
-
+		
+	tmp=(unsigned long *)cache;
+	*tmp=EULONG(tmp);
+	
 	ft->cached_dentry[ft->dentry_cache_index] = dentry;
 
 	ft->dentry_cache_index = (ft->dentry_cache_index+1) % DENTRY_CACHE;
@@ -4404,7 +4410,7 @@ get_root_vfsmount(char *file_buf)
 	ulong vfsmnt;
 	ulong mnt_parent;
 
-	vfsmnt = ULONG(file_buf + OFFSET(file_f_vfsmnt));
+	vfsmnt = EULONG(&(ULONG(file_buf + OFFSET(file_f_vfsmnt))));
 
 	if (!strlen(vfsmount_devname(vfsmnt, buf1, BUFSIZE)))
 		return vfsmnt;

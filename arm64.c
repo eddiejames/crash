@@ -5137,6 +5137,7 @@ arm64_calc_VA_BITS(void)
 	int bitval;
 	struct syment *sp;
 	ulong vabits_actual, value;
+<<<<<<< HEAD
 
 	arm64_get_vmcoreinfo(&machdep->machspec->CONFIG_ARM64_VA_BITS, "NUMBER(VA_BITS)", NUM_DEC);
 
@@ -5184,6 +5185,44 @@ arm64_calc_VA_BITS(void)
 	} else if (machdep->machspec->VA_BITS_ACTUAL) {
 		machdep->machspec->VA_BITS = machdep->machspec->VA_BITS_ACTUAL;
 		machdep->machspec->VA_START = _VA_START(machdep->machspec->VA_BITS_ACTUAL);
+		return;
+	}
+=======
+	char *string;
+>>>>>>> c06348c (changes)
+
+	if ((string = pc->read_vmcoreinfo("NUMBER(VA_BITS)"))) {
+		value = atol(string);
+		free(string);
+		machdep->machspec->CONFIG_ARM64_VA_BITS = value;
+	}
+
+	if (kernel_symbol_exists("vabits_actual")) {
+		if (pc->flags & PROC_KCORE) {
+			vabits_actual = symbol_value_from_proc_kallsyms("vabits_actual");
+			if ((vabits_actual != BADVAL) && (READMEM(pc->mfd, &value, sizeof(ulong),
+		    	    vabits_actual, KCORE_USE_VADDR) > 0)) {
+				if (CRASHDEBUG(1))
+					fprintf(fp, 
+					    "/proc/kcore: vabits_actual: %ld\n", value);
+				machdep->machspec->VA_BITS_ACTUAL = value;
+				machdep->machspec->VA_BITS = value;
+				machdep->machspec->VA_START = _VA_START(machdep->machspec->VA_BITS_ACTUAL);
+			} else
+				error(FATAL, "/proc/kcore: cannot read vabits_actual\n");
+		} else if (ACTIVE())
+			error(FATAL, "cannot determine VA_BITS_ACTUAL: please use /proc/kcore\n");
+		else {
+			if ((string = pc->read_vmcoreinfo("NUMBER(VA_BITS_ACTUAL)"))) {
+				value = atol(string);
+				free(string);
+				machdep->machspec->VA_BITS_ACTUAL = value;
+				machdep->machspec->VA_BITS = value;
+				machdep->machspec->VA_START = _VA_START(machdep->machspec->VA_BITS_ACTUAL);
+			} else
+				error(FATAL, "cannot determine VA_BITS_ACTUAL\n");
+		}
+
 		return;
 	}
 
@@ -5259,6 +5298,7 @@ arm64_calc_virtual_memory_ranges(void)
 	struct machine_specific *ms = machdep->machspec;
 	ulong value, vmemmap_start, vmemmap_end, vmemmap_size, vmalloc_end;
 	char *string;
+<<<<<<< HEAD
 	int ret;
 	ulong PUD_SIZE = UNINITIALIZED;
 
@@ -5269,6 +5309,15 @@ arm64_calc_virtual_memory_ranges(void)
 			if ((ret = get_kernel_config("CONFIG_ARM64_VA_BITS",
 					&string)) == IKCONFIG_STR)
 				machdep->machspec->CONFIG_ARM64_VA_BITS = atol(string);
+=======
+	ulong PUD_SIZE = UNINITIALIZED;
+
+	if (!machdep->machspec->CONFIG_ARM64_VA_BITS) {
+		if ((string = pc->read_vmcoreinfo("NUMBER(VA_BITS)"))) {
+			value = atol(string);
+			free(string);
+			machdep->machspec->CONFIG_ARM64_VA_BITS = value;
+>>>>>>> c06348c (changes)
 		}
 	}
 
@@ -5294,6 +5343,7 @@ arm64_calc_virtual_memory_ranges(void)
 #define STRUCT_PAGE_MAX_SHIFT   6
 
 	if (ms->VA_BITS_ACTUAL) {
+<<<<<<< HEAD
 		ulong va_bits_min = 48;
 
 		if (machdep->machspec->CONFIG_ARM64_VA_BITS < 48)
@@ -5306,6 +5356,14 @@ arm64_calc_virtual_memory_ranges(void)
 		ms->vmemmap_vaddr = vmemmap_start;
 		ms->vmemmap_end = vmemmap_start + vmemmap_size;
 
+=======
+		vmemmap_size = (1UL) << (ms->CONFIG_ARM64_VA_BITS - machdep->pageshift - 1 + STRUCT_PAGE_MAX_SHIFT);
+		vmalloc_end = (- PUD_SIZE - vmemmap_size - KILOBYTES(64));
+		vmemmap_start = (-vmemmap_size);
+		ms->vmalloc_end = vmalloc_end - 1;
+		ms->vmemmap_vaddr = vmemmap_start;
+		ms->vmemmap_end = -1;
+>>>>>>> c06348c (changes)
 		return;
 	}
 

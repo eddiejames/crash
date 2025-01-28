@@ -253,7 +253,7 @@ dump_lockless_record_log(int msg_flags)
 	m.desc_ring = m.prb + OFFSET(prb_desc_ring);
 	m.desc_ring_count = 1 << UINT(m.desc_ring + OFFSET(prb_desc_ring_count_bits));
 
-	kaddr = ULONG(m.desc_ring + OFFSET(prb_desc_ring_descs));
+	kaddr = EULONG(&(ULONG(m.desc_ring + OFFSET(prb_desc_ring_descs))));
 	m.descs = GETBUF(SIZE(prb_desc) * m.desc_ring_count);
 	if (!readmem(kaddr, KVADDR, m.descs, SIZE(prb_desc) * m.desc_ring_count,
 		     "prb_desc_ring contents", RETURN_ON_ERROR|QUIET)) {
@@ -261,7 +261,7 @@ dump_lockless_record_log(int msg_flags)
 		goto out_descs;
 	}
 
-	kaddr = ULONG(m.desc_ring + OFFSET(prb_desc_ring_infos));
+	kaddr = EULONG(&(ULONG(m.desc_ring + OFFSET(prb_desc_ring_infos))));
 	m.infos = GETBUF(SIZE(printk_info) * m.desc_ring_count);
 	if (!readmem(kaddr, KVADDR, m.infos, SIZE(printk_info) * m.desc_ring_count,
 		     "prb_info_ring contents", RETURN_ON_ERROR|QUIET)) {
@@ -273,7 +273,7 @@ dump_lockless_record_log(int msg_flags)
 	m.text_data_ring = m.prb + OFFSET(prb_text_data_ring);
 	m.text_data_ring_size = 1 << UINT(m.text_data_ring + OFFSET(prb_data_ring_size_bits));
 
-	kaddr = ULONG(m.text_data_ring + OFFSET(prb_data_ring_data));
+	kaddr = EULONG(&(ULONG(m.text_data_ring + OFFSET(prb_data_ring_data))));
 	m.text_data = GETBUF(m.text_data_ring_size);
 	if (!readmem(kaddr, KVADDR, m.text_data, m.text_data_ring_size,
 		     "prb_text_data_ring contents", RETURN_ON_ERROR|QUIET)) {
@@ -298,10 +298,10 @@ dump_lockless_record_log(int msg_flags)
 
 	/* ready to go */
 
-	tail_id = ULONG(m.desc_ring + OFFSET(prb_desc_ring_tail_id) +
-			OFFSET(atomic_long_t_counter));
-	head_id = ULONG(m.desc_ring + OFFSET(prb_desc_ring_head_id) +
-			OFFSET(atomic_long_t_counter));
+	tail_id = EULONG(&(ULONG(m.desc_ring + OFFSET(prb_desc_ring_tail_id) +
+			OFFSET(atomic_long_t_counter))));
+	head_id = EULONG(&(ULONG(m.desc_ring + OFFSET(prb_desc_ring_head_id) +
+			OFFSET(atomic_long_t_counter))));
 
 	hq_open();
 

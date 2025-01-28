@@ -1429,6 +1429,8 @@ char *help_ps[] = {
 "  pointer under a column titled \"KSTACKP\".",
 " ",
 "       -s  replace the TASK column with the KSTACKP column.",
+"       -P  display additional information on scheduling policy, absolute",
+"           priority and nice value of the processes.",
 " ",
 "  On SMP machines, the active task on each CPU will be highlighted by an",
 "  angle bracket (\">\") preceding its information.  If the crash variable",
