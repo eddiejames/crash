@@ -4748,7 +4748,7 @@ do_xarray_iter(ulong node, uint height, char *path,
 
 		readmem(node + OFFSET(xa_node_slots) +
 			sizeof(void *) * off, KVADDR, &slot, sizeof(void *),
-			"xa_node.slots[off]", FAULT_ON_ERROR);
+			"xa_node.slots[off]", RETURN_ON_ERROR);
 		if (!slot)
 			continue;
 

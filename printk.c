@@ -122,27 +122,29 @@ dump_record(struct prb_map *m, unsigned long id, int msg_flags)
 	desc = m->descs + ((id % m->desc_ring_count) * SIZE(prb_desc));
 
 	/* skip non-committed record */
-	state_var = ULONG(desc + OFFSET(prb_desc_state_var) +
-			OFFSET(atomic_long_t_counter));
+	state_var = EULONG(&(ULONG(desc + OFFSET(prb_desc_state_var) +
+			OFFSET(atomic_long_t_counter))));
 	state = get_desc_state(id, state_var);
-	if (state != desc_committed && state != desc_finalized)
+	if (state != desc_committed && state != desc_finalized) {
+		fprintf(fp, "EAJ: bad record state id:%lx sv:%lx s:%d\n", id, state_var, state);
 		return;
+	}
 
 	info = m->infos + ((id % m->desc_ring_count) * SIZE(printk_info));
 
-	seq = ULONGLONG(info + OFFSET(printk_info_seq));
-	caller_id = UINT(info + OFFSET(printk_info_caller_id));
+	seq = EULONGLONG(&(ULONGLONG(info + OFFSET(printk_info_seq))));
+	caller_id = EUINT(&(UINT(info + OFFSET(printk_info_caller_id))));
 	if (CRASHDEBUG(1))
 		fprintf(fp, "seq: %llu caller_id: %x (%s: %u)\n", seq, caller_id,
 			caller_id & 0x80000000 ? "cpu" : "pid", caller_id & ~0x80000000);
 
-	text_len = USHORT(info + OFFSET(printk_info_text_len));
+	text_len = EUSHORT(&(USHORT(info + OFFSET(printk_info_text_len))));
 
-	begin = ULONG(desc + OFFSET(prb_desc_text_blk_lpos) +
-		      OFFSET(prb_data_blk_lpos_begin)) %
+	begin = EULONG(&(ULONG(desc + OFFSET(prb_desc_text_blk_lpos) +
+		      OFFSET(prb_data_blk_lpos_begin)))) %
 			m->text_data_ring_size;
-	next = ULONG(desc + OFFSET(prb_desc_text_blk_lpos) +
-		     OFFSET(prb_data_blk_lpos_next)) %
+	next = EULONG(&(ULONG(desc + OFFSET(prb_desc_text_blk_lpos) +
+		     OFFSET(prb_data_blk_lpos_next)))) %
 			m->text_data_ring_size;
 
 	/* skip data-less text blocks */
@@ -150,7 +152,7 @@ dump_record(struct prb_map *m, unsigned long id, int msg_flags)
 		goto out;
 
 	if ((msg_flags & SHOW_LOG_TEXT) == 0) {
-		ts_nsec = ULONGLONG(info + OFFSET(printk_info_ts_nsec));
+		ts_nsec = EULONGLONG(&(ULONGLONG(info + OFFSET(printk_info_ts_nsec))));
 		nanos = (ulonglong)ts_nsec / (ulonglong)1000000000;
 		rem = (ulonglong)ts_nsec % (ulonglong)1000000000;
 		if (msg_flags & SHOW_LOG_CTIME) {
@@ -173,7 +175,7 @@ dump_record(struct prb_map *m, unsigned long id, int msg_flags)
 		unsigned int cid;
 
 		/* Get id type, isolate id value in cid for print */
-		cid = UINT(info + OFFSET(printk_info_caller_id));
+		cid = EUINT(&(UINT(info + OFFSET(printk_info_caller_id))));
 		sprintf(cbuf, "%c%d", (cid & cpuid) ? 'C' : 'T', cid & ~cpuid);
 		sprintf(buf, "[%*s] ", m->pid_max_chars, cbuf);
 
@@ -251,7 +253,7 @@ dump_lockless_record_log(int msg_flags)
 
 	/* setup descriptor ring */
 	m.desc_ring = m.prb + OFFSET(prb_desc_ring);
-	m.desc_ring_count = 1 << UINT(m.desc_ring + OFFSET(prb_desc_ring_count_bits));
+	m.desc_ring_count = 1 << EUINT(&(UINT(m.desc_ring + OFFSET(prb_desc_ring_count_bits))));
 
 	kaddr = EULONG(&(ULONG(m.desc_ring + OFFSET(prb_desc_ring_descs))));
 	m.descs = GETBUF(SIZE(prb_desc) * m.desc_ring_count);
@@ -271,7 +273,7 @@ dump_lockless_record_log(int msg_flags)
 
 	/* setup text data ring */
 	m.text_data_ring = m.prb + OFFSET(prb_text_data_ring);
-	m.text_data_ring_size = 1 << UINT(m.text_data_ring + OFFSET(prb_data_ring_size_bits));
+	m.text_data_ring_size = 1 << EUINT(&(UINT(m.text_data_ring + OFFSET(prb_data_ring_size_bits))));
 
 	kaddr = EULONG(&(ULONG(m.text_data_ring + OFFSET(prb_data_ring_data))));
 	m.text_data = GETBUF(m.text_data_ring_size);
